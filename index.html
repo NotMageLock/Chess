@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chess vs AI</title>
+
+    <!-- Manifest for PWA -->
+    <link rel="manifest" href="/Chess/manifest.json">
+
+    <!-- Apple-specific settings -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="Chess vs AI">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+    <!-- Icons for Apple Touch -->
+    <link rel="apple-touch-icon" href="assets/icons/icon-192x192.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="assets/icons/icon-192x192.png">
+    <link rel="apple-touch-icon" sizes="512x512" href="assets/icons/icon-512x512.png">
+
+    <!-- Startup image for iOS -->
+    <link rel="apple-touch-startup-image" href="assets/icons/icon-512x512.png">
+
+    <!-- CSS for chessboard -->
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+        }
+
+        #board {
+            width: 100%;
+            max-width: 400px;
+            margin: 20px auto;
+        }
+
+        #restartBtn {
+            display: block;
+            margin: 20px auto;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="board"></div>
+    <button id="restartBtn">Restart Game</button>
+
+    <!-- JavaScript for chess logic and chessboard -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.2/chess.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chessboard.js/1.0.0/chessboard-1.0.0.min.js"></script>
+    <script>
+        var board = null;
+        var game = new Chess();
+
+        function makeBestMove() {
+            var bestMove = getBestMove(game);
+            game.move(bestMove);
+            board.position(game.fen());
+            if (game.game_over()) {
+                alert('Game over');
+            }
+        }
+
+        function getBestMove(game) {
+            var possibleMoves = game.ugly_moves();
+            var randomIndex = Math.floor(Math.random() * possibleMoves.length);
+            return possibleMoves[randomIndex];
+        }
+
+        function onDragStart(source, piece, position, orientation) {
+            if (game.in_checkmate() === true || game.in_draw() === true ||
+                piece.search(/^b/) !== -1) {
+                return false;
+            }
+        }
+
+        function onDrop(source, target) {
+            var move = game.move({
+                from: source,
+                to: target,
+                promotion: 'q'
+            });
+
+            if (move === null) return 'snapback';
+
+            window.setTimeout(makeBestMove, 250);
+        }
+
+        function onSnapEnd() {
+            board.position(game.fen());
+        }
+
+        function restartGame() {
+            game.reset();
+            board.start();
+        }
+
+        var config = {
+            draggable: true,
+            position: 'start',
+            onDragStart: onDragStart,
+            onDrop: onDrop,
+            onSnapEnd: onSnapEnd
+        };
+
+        board = Chessboard('board', config);
+
+        document.getElementById('restartBtn').addEventListener('click', restartGame);
+
+        // Register the service worker for PWA support
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/Chess/service-worker.js')
+                .then(function (registration) {
+                    console.log('Service Worker registered with scope:', registration.scope);
+                })
+                .catch(function (error) {
+                    console.log('Service Worker registration failed:', error);
+                });
+        }
+    </script>
+</body>
+</html>
